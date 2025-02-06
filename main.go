@@ -102,6 +102,10 @@ func main() {
 		adjustedRounded := test.AdjustedExecutionTime.Round(time.Millisecond)
 		totalRounded := test.TotalExecutionTime.Round(time.Millisecond)
 		if adjustedRounded != totalRounded {
+			// Protect against divide by zero
+			if adjustedRounded == 0 {
+				adjustedRounded = 1 * time.Millisecond
+			}
 			fmt.Printf("%s %s: %s (total: %s parallel: %d)\n", test.Package, test.Name, adjustedRounded, totalRounded,
 				totalRounded/adjustedRounded)
 		} else {
@@ -236,6 +240,9 @@ func updateRunningTests(event Event) {
 			count++
 		}
 	}
+	if count == 0 {
+		return
+	}
 	for _, runningTest := range runningTests {
 		updateExecutionTimesWithCount(runningTest, event, count)
 	}
@@ -250,6 +257,9 @@ func updateExecutionTimes(runningTest *RunningTest, event Event) {
 		if !test.AssumedStopped {
 			count++
 		}
+	}
+	if count == 0 {
+		return
 	}
 	runningTest.AdjustedExecutionTime += event.Time.Sub(runningTest.LastTimestamp) / time.Duration(count)
 	runningTest.TotalExecutionTime += event.Time.Sub(runningTest.LastTimestamp)
